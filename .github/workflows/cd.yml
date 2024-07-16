@@ -29,9 +29,7 @@ jobs:
         node-version: '20'
 
     - name: Install Dependencies
-
       if: steps.cache.outputs.cache-hit != 'true'
-
       run: |
         npm ci --legacy-peer-deps
 
@@ -60,8 +58,8 @@ jobs:
         host: ${{ secrets.HOST_IP }}
         username: ec2-user
         key: ${{ secrets.PRIVATE_KEY }}
-        source: "./dist/*"
-        target: "/home/ec2-user/tcp/actions-frontend"
+        source: "./dist/**"
+        target: "/home/ec2-user/att/actions-frontend"
 
     - name: Remove Github Actions IP From Security Group
       run: |
@@ -76,9 +74,31 @@ jobs:
   deploy:
     name: Deploy to Production
     needs: build
-    runs-on: [ self-hosted, deploy-tcp-frontend ]
+    runs-on: [ self-hosted, deploy-att-frontend ]
     steps:
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.5.0
+        with:
+          ssh-private-key: ${{ secrets.PRIVATE_KEY }}
+    
       - name: Deploy to Production
-        run: |
-          echo "ready for deploy"
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.HOST_IP }}
+          username: ec2-user
+          key: ${{ secrets.PRIVATE_KEY }}
+          script_stop: true
+          script: |
+            cd att/vue-frontend
+            cp -r /home/ec2-user/att/actions-frontend/dist/* ./html/
 
+            docker image prune -f
+            docker logout
+
+            docker-compose up -d
+
+      - name: SSH Agent Cleanup
+        if: ${{ always() }}
+        uses: webfactory/ssh-agent@v0.5.0
+        with:
+          ssh-private-key: ${{ secrets.PRIVATE_KEY }}
