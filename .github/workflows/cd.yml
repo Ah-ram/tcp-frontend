@@ -109,7 +109,7 @@ jobs:
           script_stop: true
           script: |
             pwd
-            cd /home/ec2-user/att/vue-frontend
+            cd /home/ec2-user/tcp/vue-frontend
             cp -r /home/ec2-user/tcp/actions-frontend/dist/* ./html/
 
             docker image prune -f
